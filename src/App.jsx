@@ -49,15 +49,15 @@ function fmtDateShort(d) {
 // ── Shared UI ────────────────────────────────────────────────
 const S = {
   card: {
-    background: "rgba(255,255,255,0.75)",
-    backdropFilter: "blur(24px) saturate(200%)",
-    WebkitBackdropFilter: "blur(24px) saturate(200%)",
+    background: "rgba(28,28,30,0.85)",
+    backdropFilter: "blur(24px) saturate(180%)",
+    WebkitBackdropFilter: "blur(24px) saturate(180%)",
     borderRadius: 18,
-    border: "1px solid rgba(255,255,255,0.6)",
-    boxShadow: "0 2px 28px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    boxShadow: "0 2px 28px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.3)",
   },
   label: {
-    fontSize: 11, color: "#8e8e93", fontWeight: 600,
+    fontSize: 11, color: "#636366", fontWeight: 600,
     letterSpacing: 0.4, textTransform: "uppercase",
     display: "block", marginBottom: 6,
   },
@@ -102,9 +102,9 @@ function Input({ value, onChange, type = "text", placeholder = "", style = {} })
       placeholder={placeholder}
       style={{
         width: "100%", padding: "9px 12px", borderRadius: 10,
-        background: focused ? "rgba(0,122,255,0.05)" : "rgba(0,0,0,0.04)",
+        background: focused ? "rgba(0,122,255,0.15)" : "rgba(255,255,255,0.07)",
         border: `1px solid ${focused ? "rgba(0,122,255,0.4)" : "transparent"}`,
-        fontSize: 13, color: "#1c1c1e", fontFamily: "inherit", outline: "none",
+        fontSize: 13, color: "#f2f2f7", fontFamily: "inherit", outline: "none",
         transition: "all 0.15s", boxSizing: "border-box", ...style,
       }}
       onFocus={() => setFocused(true)}
@@ -122,8 +122,8 @@ function Chips({ options, value, onChange, colorFn }) {
         return (
           <button key={v} onClick={() => onChange(v)} style={{
             padding: "5px 13px", borderRadius: 20, border: "none",
-            background: active ? col : "rgba(0,0,0,0.05)",
-            color: active ? "#fff" : "#3a3a3c",
+            background: active ? col : "rgba(255,255,255,0.1)",
+            color: active ? "#fff" : "#ebebf5",
             fontSize: 12, fontWeight: 500, cursor: "pointer",
             transition: "all 0.15s",
           }}>{l}</button>
@@ -148,7 +148,7 @@ function LoginPage() {
   return (
     <div style={{
       minHeight: "100vh",
-      background: "linear-gradient(145deg, #e8f4ff 0%, #f5eeff 50%, #e8fff4 100%)",
+      background: "linear-gradient(145deg, #0a0a0f 0%, #0d0a1a 50%, #0a0f0a 100%)",
       display: "flex", alignItems: "center", justifyContent: "center",
       fontFamily: "-apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif",
       padding: 20,
@@ -162,7 +162,7 @@ function LoginPage() {
           fontSize: 32, boxShadow: "0 8px 28px rgba(0,122,255,0.35)",
         }}>📅</div>
 
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: "#1c1c1e", letterSpacing: -0.6, marginBottom: 8 }}>
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: "#f2f2f7", letterSpacing: -0.6, marginBottom: 8 }}>
           Calendar Tracker
         </h1>
         <p style={{ fontSize: 15, color: "#8e8e93", marginBottom: 40, lineHeight: 1.5 }}>
@@ -177,13 +177,13 @@ function LoginPage() {
 
           <button onClick={signInGoogle} disabled={loading} style={{
             width: "100%", padding: "13px 20px",
-            background: loading ? "#f2f2f7" : "#fff",
-            border: "1px solid #e5e5ea", borderRadius: 12,
+            background: loading ? "#2c2c2e" : "#1c1c1e",
+            border: "1px solid #3a3a3c", borderRadius: 12,
             fontSize: 15, fontWeight: 500, cursor: loading ? "not-allowed" : "pointer",
             display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
             fontFamily: "inherit", transition: "all 0.15s",
-            boxShadow: "0 1px 6px rgba(0,0,0,0.06)",
-            color: "#1c1c1e",
+            boxShadow: "0 1px 6px rgba(0,0,0,0.4)",
+            color: "#f2f2f7",
           }}
             onMouseEnter={e => { if (!loading) e.currentTarget.style.boxShadow = "0 3px 14px rgba(0,0,0,0.1)"; }}
             onMouseLeave={e => e.currentTarget.style.boxShadow = "0 1px 6px rgba(0,0,0,0.06)"}
@@ -256,25 +256,25 @@ Return ONLY valid JSON, no markdown, no explanation.`;
       display:"flex", alignItems:"center", justifyContent:"center",
       padding: 16,
     }}>
-      <div onClick={onClose} style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.3)", backdropFilter:"blur(6px)" }} />
+      <div onClick={onClose} style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.7)", backdropFilter:"blur(12px)" }} />
       <div style={{ position:"relative", width:"100%", maxWidth:440, zIndex:1, animation:"slideUp 0.22s ease" }}>
         <Card style={{ overflow:"hidden" }}>
-          <div style={{ padding:"18px 20px 14px", borderBottom:"1px solid rgba(0,0,0,0.06)" }}>
+          <div style={{ padding:"18px 20px 14px", borderBottom:"1px solid rgba(255,255,255,0.08)" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
               <div>
-                <div style={{ fontSize:11, color:"#8e8e93", fontWeight:600, letterSpacing:0.4, textTransform:"uppercase" }}>AI Assistant</div>
-                <div style={{ fontSize:16, fontWeight:600, color:"#1c1c1e" }}>แก้ไขด้วย AI ✦</div>
+                <div style={{ fontSize:11, color:"#636366", fontWeight:600, letterSpacing:0.4, textTransform:"uppercase" }}>AI Assistant</div>
+                <div style={{ fontSize:16, fontWeight:600, color:"#f2f2f7" }}>แก้ไขด้วย AI ✦</div>
               </div>
-              <button onClick={onClose} style={{ background:"rgba(0,0,0,0.06)", border:"none", width:28, height:28, borderRadius:"50%", cursor:"pointer", color:"#8e8e93", fontSize:14 }}>✕</button>
+              <button onClick={onClose} style={{ background:"rgba(255,255,255,0.1)", border:"none", width:28, height:28, borderRadius:"50%", cursor:"pointer", color:"#aeaeb2", fontSize:14 }}>✕</button>
             </div>
           </div>
 
           <div style={{ padding:"16px 20px 20px", display:"flex", flexDirection:"column", gap:14 }}>
             {/* Current event summary */}
-            <div style={{ background:"rgba(0,0,0,0.03)", borderRadius:10, padding:"10px 12px" }}>
-              <div style={{ fontSize:11, color:"#8e8e93", marginBottom:4 }}>กิจกรรมปัจจุบัน</div>
-              <div style={{ fontSize:13, fontWeight:500, color:"#1c1c1e" }}>{event.title}</div>
-              <div style={{ fontSize:11, color:"#8e8e93" }}>{fmtDate(event.date)} · {event.planned_start_time}–{event.planned_end_time}</div>
+            <div style={{ background:"rgba(255,255,255,0.05)", borderRadius:10, padding:"10px 12px" }}>
+              <div style={{ fontSize:11, color:"#636366", marginBottom:4 }}>กิจกรรมปัจจุบัน</div>
+              <div style={{ fontSize:13, fontWeight:500, color:"#f2f2f7" }}>{event.title}</div>
+              <div style={{ fontSize:11, color:"#636366" }}>{fmtDate(event.date)} · {event.planned_start_time}–{event.planned_end_time}</div>
             </div>
 
             {/* Prompt */}
@@ -286,15 +286,15 @@ Return ONLY valid JSON, no markdown, no explanation.`;
                 placeholder={"เช่น:\n\"เลื่อนไปพรุ่งนี้ บ่าย 3\"\n\"เปลี่ยนเป็นออกกำลังกาย 1 ชั่วโมง\"\n\"mark เป็น completed\""}
                 rows={3}
                 style={{
-                  width:"100%", resize:"none", background:"rgba(0,0,0,0.04)",
+                  width:"100%", resize:"none", background:"rgba(255,255,255,0.07)",
                   border:"1px solid transparent", borderRadius:10, padding:"9px 12px",
-                  fontSize:13, color:"#1c1c1e", fontFamily:"inherit", outline:"none", lineHeight:1.65,
+                  fontSize:13, color:"#f2f2f7", fontFamily:"inherit", outline:"none", lineHeight:1.65,
                   boxSizing:"border-box",
                 }}
                 onFocus={e => { e.target.style.borderColor = "rgba(0,122,255,0.4)"; e.target.style.background = "rgba(0,122,255,0.04)"; }}
                 onBlur={e => { e.target.style.borderColor = "transparent"; e.target.style.background = "rgba(0,0,0,0.04)"; }}
               />
-              <div style={{ fontSize:10, color:"#c7c7cc", marginTop:4 }}>Enter เพื่อ generate · Shift+Enter ขึ้นบรรทัดใหม่</div>
+              <div style={{ fontSize:10, color:"#3a3a3c", marginTop:4 }}>Enter เพื่อ generate · Shift+Enter ขึ้นบรรทัดใหม่</div>
             </Field>
 
             <Btn onClick={generate} disabled={loading || !prompt.trim()} full>
@@ -364,9 +364,9 @@ function EventForm({ initial, onSave, onClose, title: formTitle = "เพิ่�
         <textarea value={form.notes} onChange={e => set("notes", e.target.value)}
           placeholder="รายละเอียดเพิ่มเติม..." rows={2}
           style={{
-            width:"100%", resize:"none", background:"rgba(0,0,0,0.04)",
+            width:"100%", resize:"none", background:"rgba(255,255,255,0.07)",
             border:"1px solid transparent", borderRadius:10, padding:"9px 12px",
-            fontSize:13, color:"#1c1c1e", fontFamily:"inherit", outline:"none", lineHeight:1.6,
+            fontSize:13, color:"#f2f2f7", fontFamily:"inherit", outline:"none", lineHeight:1.6,
             boxSizing:"border-box",
           }}
           onFocus={e => { e.target.style.borderColor = "rgba(0,122,255,0.4)"; e.target.style.background = "rgba(0,122,255,0.04)"; }}
@@ -396,18 +396,18 @@ function DetailPanel({ ev, onUpdate, onDelete, onClose }) {
   return (
     <div>
       {/* Header */}
-      <div style={{ padding:"18px 20px 14px", borderBottom:"1px solid rgba(0,0,0,0.06)" }}>
+      <div style={{ padding:"18px 20px 14px", borderBottom:"1px solid rgba(255,255,255,0.08)" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
           <div style={{ display:"flex", alignItems:"center", gap:10 }}>
             <div style={{ width:38, height:38, borderRadius:10, background:c.bg, display:"flex", alignItems:"center", justifyContent:"center" }}>
               <div style={{ width:12, height:12, borderRadius:"50%", background:c.dot }} />
             </div>
             <div>
-              <div style={{ fontSize:11, color:"#8e8e93" }}>{c.label}</div>
-              <div style={{ fontSize:16, fontWeight:600, color:"#1c1c1e", letterSpacing:-0.3 }}>{ev.title}</div>
+              <div style={{ fontSize:11, color:"#636366" }}>{c.label}</div>
+              <div style={{ fontSize:16, fontWeight:600, color:"#f2f2f7", letterSpacing:-0.3 }}>{ev.title}</div>
             </div>
           </div>
-          <button onClick={onClose} style={{ background:"rgba(0,0,0,0.06)", border:"none", width:28, height:28, borderRadius:"50%", cursor:"pointer", color:"#8e8e93", fontSize:13 }}>✕</button>
+          <button onClick={onClose} style={{ background:"rgba(255,255,255,0.1)", border:"none", width:28, height:28, borderRadius:"50%", cursor:"pointer", color:"#aeaeb2", fontSize:13 }}>✕</button>
         </div>
 
         <div style={{ marginTop:12, display:"flex", gap:6, flexWrap:"wrap" }}>
@@ -432,9 +432,9 @@ function DetailPanel({ ev, onUpdate, onDelete, onClose }) {
             ["สถานะ", STATUS_OPTS.find(s => s.v === ev.status)?.l],
             ["หมายเหตุ", ev.notes || "—"],
           ].map(([l,v]) => (
-            <div key={l} style={{ display:"flex", gap:12, padding:"8px 0", borderBottom:"1px solid rgba(0,0,0,0.04)" }}>
-              <span style={{ fontSize:12, color:"#8e8e93", minWidth:60, fontWeight:500 }}>{l}</span>
-              <span style={{ fontSize:13, color:"#1c1c1e" }}>{v}</span>
+            <div key={l} style={{ display:"flex", gap:12, padding:"8px 0", borderBottom:"1px solid rgba(255,255,255,0.05)" }}>
+              <span style={{ fontSize:12, color:"#636366", minWidth:60, fontWeight:500 }}>{l}</span>
+              <span style={{ fontSize:13, color:"#f2f2f7" }}>{v}</span>
             </div>
           ))}
         </div>
@@ -524,7 +524,7 @@ function MainApp({ session }) {
   return (
     <div style={{
       minHeight:"100vh",
-      background:"linear-gradient(135deg, #f0f4ff 0%, #faf0ff 40%, #f0fff8 100%)",
+      background:"linear-gradient(135deg, #000000 0%, #0d0d0f 50%, #000000 100%)",
       fontFamily:"-apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif",
       padding:"0 0 60px",
     }}>
@@ -537,13 +537,13 @@ function MainApp({ session }) {
 
       {/* ── Nav Bar ── */}
       <div style={{
-        background:"rgba(255,255,255,0.72)", backdropFilter:"blur(20px)",
-        borderBottom:"1px solid rgba(0,0,0,0.06)",
+        background:"rgba(0,0,0,0.8)", backdropFilter:"blur(20px)",
+        borderBottom:"1px solid rgba(255,255,255,0.08)",
         padding:"12px 20px",
         display:"flex", justifyContent:"space-between", alignItems:"center",
         position:"sticky", top:0, zIndex:50,
       }}>
-        <div style={{ fontSize:17, fontWeight:700, color:"#1c1c1e", letterSpacing:-0.4 }}>📅 Calendar</div>
+        <div style={{ fontSize:17, fontWeight:700, color:"#f2f2f7", letterSpacing:-0.4 }}>📅 Calendar</div>
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
           <button onClick={() => setShowAdd(true)} style={{
             background:"#007AFF", border:"none", color:"#fff",
@@ -568,8 +568,8 @@ function MainApp({ session }) {
       {showProfile && (
         <div style={{ position:"fixed", top:58, right:16, zIndex:100, animation:"fadeIn 0.15s ease" }}>
           <Card style={{ padding:"12px 16px", minWidth:200 }}>
-            <div style={{ fontSize:13, fontWeight:600, color:"#1c1c1e" }}>{profile?.display_name || "ผู้ใช้"}</div>
-            <div style={{ fontSize:11, color:"#8e8e93", marginBottom:12 }}>{user.email}</div>
+            <div style={{ fontSize:13, fontWeight:600, color:"#f2f2f7" }}>{profile?.display_name || "ผู้ใช้"}</div>
+            <div style={{ fontSize:11, color:"#636366", marginBottom:12 }}>{user.email}</div>
             <Btn onClick={signOut} ghost color="#FF3B30" full style={{ fontSize:13 }}>ออกจากระบบ</Btn>
           </Card>
         </div>
@@ -586,13 +586,13 @@ function MainApp({ session }) {
             { l:"รวมทั้งหมด",v: events.length, col:"#5856D6" },
           ].map(({ l, v, col }) => (
             <div key={l} style={{
-              background:"rgba(255,255,255,0.65)", backdropFilter:"blur(12px)",
+              background:"rgba(28,28,30,0.8)", backdropFilter:"blur(12px)",
               borderRadius:14, padding:"12px 14px", textAlign:"center",
-              border:"1px solid rgba(255,255,255,0.7)",
+              border:"1px solid rgba(255,255,255,0.08)",
               boxShadow:"0 1px 8px rgba(0,0,0,0.04)",
             }}>
               <div style={{ fontSize:22, fontWeight:700, color:col, letterSpacing:-0.5 }}>{v}</div>
-              <div style={{ fontSize:10, color:"#8e8e93", fontWeight:500, marginTop:2 }}>{l}</div>
+              <div style={{ fontSize:10, color:"#636366", fontWeight:500, marginTop:2 }}>{l}</div>
             </div>
           ))}
         </div>
@@ -602,13 +602,13 @@ function MainApp({ session }) {
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="ค้นหากิจกรรม..."
             style={{
               width:"100%", padding:"10px 14px 10px 36px",
-              background:"rgba(255,255,255,0.7)", backdropFilter:"blur(12px)",
-              border:"1px solid rgba(255,255,255,0.8)", borderRadius:12,
-              fontSize:14, color:"#1c1c1e", fontFamily:"inherit", outline:"none",
+              background:"rgba(28,28,30,0.8)", backdropFilter:"blur(12px)",
+              border:"1px solid rgba(255,255,255,0.1)", borderRadius:12,
+              fontSize:14, color:"#f2f2f7", fontFamily:"inherit", outline:"none",
               boxShadow:"0 1px 6px rgba(0,0,0,0.05)",
             }}
           />
-          <span style={{ position:"absolute", left:11, top:"50%", transform:"translateY(-50%)", color:"#c7c7cc", fontSize:16, pointerEvents:"none" }}>⌕</span>
+          <span style={{ position:"absolute", left:11, top:"50%", transform:"translateY(-50%)", color:"#3a3a3c", fontSize:16, pointerEvents:"none" }}>⌕</span>
         </div>
 
         {/* ── Category Filter ── */}
@@ -616,11 +616,11 @@ function MainApp({ session }) {
           {[["all","ทั้งหมด","#007AFF"], ...Object.entries(CATS).map(([k,v])=>[k,v.label,v.dot])].map(([k,l,col]) => (
             <button key={k} onClick={() => setFilter(k)} style={{
               padding:"6px 14px", borderRadius:20, border:"none", flexShrink:0,
-              background: filter===k ? col : "rgba(255,255,255,0.65)",
+              background: filter===k ? col : "rgba(28,28,30,0.8)",
               backdropFilter:"blur(8px)",
-              color: filter===k ? "#fff" : "#3a3a3c",
+              color: filter===k ? "#fff" : "#aeaeb2",
               fontSize:12, fontWeight:500, cursor:"pointer", whiteSpace:"nowrap",
-              boxShadow: filter===k ? `0 2px 10px ${col}44` : "0 1px 4px rgba(0,0,0,0.06)",
+              boxShadow: filter===k ? `0 2px 10px ${col}44` : "0 1px 4px rgba(0,0,0,0.3)",
               transition:"all 0.15s",
             }}>{l}</button>
           ))}
@@ -632,11 +632,11 @@ function MainApp({ session }) {
           {/* List */}
           <Card style={{ overflow:"hidden" }}>
             {loading ? (
-              <div style={{ padding:"40px 20px", textAlign:"center", color:"#c7c7cc" }}>
+              <div style={{ padding:"40px 20px", textAlign:"center", color:"#3a3a3c" }}>
                 <div style={{ fontSize:28, marginBottom:8, opacity:0.5 }}>⟳</div>กำลังโหลด...
               </div>
             ) : Object.keys(grouped).length === 0 ? (
-              <div style={{ padding:"48px 20px", textAlign:"center", color:"#c7c7cc" }}>
+              <div style={{ padding:"48px 20px", textAlign:"center", color:"#3a3a3c" }}>
                 <div style={{ fontSize:40, marginBottom:12 }}>📋</div>
                 <div style={{ fontSize:15, fontWeight:500 }}>ยังไม่มีกิจกรรม</div>
                 <div style={{ fontSize:13, marginTop:6 }}>กด ＋ เพื่อเพิ่มกิจกรรมแรก</div>
@@ -645,9 +645,9 @@ function MainApp({ session }) {
               Object.keys(grouped).sort().reverse().map(date => (
                 <div key={date}>
                   <div style={{
-                    padding:"8px 16px 4px", fontSize:11, fontWeight:700, color:"#8e8e93",
+                    padding:"8px 16px 4px", fontSize:11, fontWeight:700, color:"#48484a",
                     letterSpacing:0.5, textTransform:"uppercase",
-                    background:"rgba(0,0,0,0.02)", borderBottom:"1px solid rgba(0,0,0,0.04)",
+                    background:"rgba(255,255,255,0.03)", borderBottom:"1px solid rgba(255,255,255,0.06)",
                   }}>
                     {date === today ? "🗓 วันนี้" : fmtDateShort(date)}
                     <span style={{ fontWeight:400, marginLeft:6, opacity:0.6 }}>{fmtDate(date)}</span>
@@ -663,7 +663,7 @@ function MainApp({ session }) {
                           style={{
                             display:"flex", alignItems:"center", gap:12, padding:"11px 16px",
                             background: isSel ? c.bg : "transparent",
-                            borderBottom:"1px solid rgba(0,0,0,0.04)",
+                            borderBottom:"1px solid rgba(255,255,255,0.05)",
                             cursor:"pointer", transition:"background 0.15s",
                           }}
                           onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = "rgba(0,0,0,0.02)"; }}
@@ -672,10 +672,10 @@ function MainApp({ session }) {
                           <div style={{ width:10, height:10, borderRadius:"50%", background:c.dot, flexShrink:0, boxShadow:`0 0 0 3px ${c.dot}22` }} />
                           <div style={{ flex:1, minWidth:0 }}>
                             <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                              <span style={{ fontSize:14, fontWeight:500, color:"#1c1c1e" }}>{ev.title}</span>
+                              <span style={{ fontSize:14, fontWeight:500, color:"#f2f2f7" }}>{ev.title}</span>
                               {date === today && <span style={{ fontSize:9, background:"#007AFF", color:"#fff", padding:"1px 5px", borderRadius:8, fontWeight:700 }}>TODAY</span>}
                             </div>
-                            <div style={{ fontSize:11, color:"#8e8e93", marginTop:1 }}>{ev.planned_start_time||""}{ ev.planned_end_time ? ` – ${ev.planned_end_time}` : ""}</div>
+                            <div style={{ fontSize:11, color:"#636366", marginTop:1 }}>{ev.planned_start_time||""}{ ev.planned_end_time ? ` – ${ev.planned_end_time}` : ""}</div>
                           </div>
                           <span style={{ fontSize:11, color:statusCol, fontWeight:500, flexShrink:0 }}>
                             {STATUS_OPTS.find(s => s.v === ev.status)?.l}
@@ -708,11 +708,11 @@ function MainApp({ session }) {
       {/* Add Modal */}
       {showAdd && (
         <div style={{ position:"fixed", inset:0, zIndex:100, display:"flex", alignItems:"flex-end", justifyContent:"center", padding:16 }}>
-          <div onClick={() => setShowAdd(false)} style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.25)", backdropFilter:"blur(4px)" }} />
+          <div onClick={() => setShowAdd(false)} style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.7)", backdropFilter:"blur(16px)" }} />
           <div style={{ position:"relative", width:"100%", maxWidth:480, zIndex:1, animation:"slideUp 0.22s ease" }}>
             <Card style={{ overflow:"hidden" }}>
-              <div style={{ padding:"16px 20px 12px", borderBottom:"1px solid rgba(0,0,0,0.06)", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                <span style={{ fontSize:17, fontWeight:600, color:"#1c1c1e" }}>เพิ่มกิจกรรมใหม่</span>
+              <div style={{ padding:"16px 20px 12px", borderBottom:"1px solid rgba(255,255,255,0.08)", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                <span style={{ fontSize:17, fontWeight:600, color:"#f2f2f7" }}>เพิ่มกิจกรรมใหม่</span>
                 <button onClick={() => setShowAdd(false)} style={{ background:"rgba(0,0,0,0.06)", border:"none", width:28, height:28, borderRadius:"50%", cursor:"pointer", fontSize:14, color:"#8e8e93" }}>✕</button>
               </div>
               <EventForm onSave={addEvent} onClose={() => setShowAdd(false)} title="เพิ่มกิจกรรม" />
@@ -735,7 +735,7 @@ export default function App() {
   }, []);
 
   if (session === undefined) return (
-    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"#f2f2f7" }}>
+    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"#000000" }}>
       <div style={{ width:40, height:40, border:"3px solid #007AFF", borderTopColor:"transparent", borderRadius:"50%", animation:"spin 0.7s linear infinite" }} />
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
