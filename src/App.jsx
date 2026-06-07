@@ -233,8 +233,7 @@ Return ONLY valid JSON, no markdown, no explanation.`;
           "Authorization": `Bearer ${SUPA_KEY}`,
         },
         body: JSON.stringify({
-          system: sys,
-          prompt: `Current event:\n${JSON.stringify(event, null, 2)}\n\nInstruction: ${prompt}`,
+          prompt: `${sys}\n\nCurrent event:\n${JSON.stringify(event, null, 2)}\n\nInstruction: ${prompt}`,
         }),
       });
       const data = await res.json();
@@ -465,7 +464,6 @@ function AIParseModal({ onAdd, onClose, userId }) {
   async function parse() {
     if (!input.trim()) return;
     setLoading(true); setErr(""); setParsed(null);
-    const sys = `You are a Thai/English calendar event parser. Extract ALL events from the text and return ONLY a JSON array. Today is ${todayDate}. Rules: category must be sleep/meal/exercise/work. date format YYYY-MM-DD (วันนี้=today, พรุ่งนี้=tomorrow). planned_start_time and planned_end_time in HH:MM 24hr format. status always "scheduled". Estimate end time if not given (meeting=1h, meal=30m, exercise=1h, sleep=8h). Return ONLY valid JSON array no markdown: [{"id":"1","category":"work","title":"...","date":"${todayDate}","planned_start_time":"10:00","planned_end_time":"11:00","status":"scheduled","notes":""}]`;
     try {
       const res = await fetch(`${SUPA_URL}/functions/v1/ai-parse`, {
         method: "POST",
@@ -475,8 +473,7 @@ function AIParseModal({ onAdd, onClose, userId }) {
           "Authorization": `Bearer ${SUPA_KEY}`,
         },
         body: JSON.stringify({
-          system: sys,
-          prompt: `Text: ${input}`,
+          prompt: input,
         }),
       });
       const data = await res.json();
