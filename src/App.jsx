@@ -16,7 +16,7 @@ import { createClient } from "@supabase/supabase-js";
 // ── Supabase client ─────────────────────────────────────────
 const SUPA_URL  = import.meta.env.VITE_SUPABASE_URL  || "";
 const SUPA_KEY  = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
-const AI_KEY    = import.meta.env.VITE_GEMINI_API_KEY || "";
+const AI_KEY    = import.meta.env.VITE_ANTHROPIC_API_KEY || "";
 const supabase  = createClient(SUPA_URL, SUPA_KEY);
 
 // ── Constants ───────────────────────────────────────────────
@@ -226,22 +226,23 @@ Editable fields: title, category (sleep/meal/exercise/work), date (YYYY-MM-DD), 
 Return ONLY valid JSON, no markdown, no explanation.`;
 
     try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${AI_KEY}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{ text: `${sys}\n\nCurrent event:\n${JSON.stringify(event, null, 2)}\n\nInstruction: ${prompt}` }]
-            }],
-            generationConfig: { maxOutputTokens: 300, temperature: 0.1 },
-          }),
-        }
-      );
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": AI_KEY,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 300,
+          system: sys,
+          messages: [{ role: "user", content: `Current event:\n${JSON.stringify(event, null, 2)}\n\nInstruction: ${prompt}` }],
+        }),
+      });
       const data = await res.json();
       if (data.error) { setErr(data.error.message); setLoading(false); return; }
-      const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+      const raw = data.content?.find(b => b.type === "text")?.text || "{}";
       const clean = raw.replace(/```json|```/g, "").trim();
       setPreview(JSON.parse(clean));
     } catch (e) { setErr(e.message); }
@@ -469,20 +470,23 @@ function AIParseModal({ onAdd, onClose, userId }) {
     setLoading(true); setErr(""); setParsed(null);
     const sys = `You are a Thai/English calendar event parser. Extract ALL events from the text and return ONLY a JSON array. Today is ${todayDate}. Rules: category must be sleep/meal/exercise/work. date format YYYY-MM-DD (วันนี้=today, พรุ่งนี้=tomorrow). planned_start_time and planned_end_time in HH:MM 24hr format. status always "scheduled". Estimate end time if not given (meeting=1h, meal=30m, exercise=1h, sleep=8h). Return ONLY valid JSON array no markdown: [{"id":"1","category":"work","title":"...","date":"${todayDate}","planned_start_time":"10:00","planned_end_time":"11:00","status":"scheduled","notes":""}]`;
     try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${AI_KEY}`,
-        {
-          method:"POST",
-          headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({
-            contents:[{parts:[{text:`${sys}\n\nText: ${input}`}]}],
-            generationConfig:{maxOutputTokens:800, temperature:0.1},
-          }),
-        }
-      );
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": AI_KEY,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 800,
+          system: sys,
+          messages: [{ role: "user", content: `Text: ${input}` }],
+        }),
+      });
       const data = await res.json();
       if (data.error) { setErr(data.error.message); setLoading(false); return; }
-      const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
+      const raw = data.content?.find(b => b.type === "text")?.text || "[]";
       const clean = raw.replace(/```json|```/g,"").trim();
       const items = JSON.parse(clean);
       if (!Array.isArray(items) || items.length === 0) {
