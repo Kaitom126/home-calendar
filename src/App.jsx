@@ -451,6 +451,7 @@ function MainApp({ session }) {
   const [loading, setLoading]   = useState(true);
   const [selected, setSelected] = useState(null);
   const [showAdd, setShowAdd]   = useState(false);
+  const [showAIParse, setShowAIParse] = useState(false);
   const [filter, setFilter]     = useState("all");
   const [search, setSearch]     = useState("");
   const [profile, setProfile]   = useState(null);
@@ -545,6 +546,13 @@ function MainApp({ session }) {
       }}>
         <div style={{ fontSize:17, fontWeight:700, color:"#f2f2f7", letterSpacing:-0.4 }}>📅 Calendar</div>
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <button onClick={() => setShowAIParse(true)} style={{
+            background:"rgba(88,86,214,0.2)", border:"1px solid rgba(88,86,214,0.5)",
+            color:"#a78bfa", height:32, borderRadius:16,
+            cursor:"pointer", fontSize:12, fontWeight:600,
+            padding:"0 12px", fontFamily:"inherit",
+            display:"flex", alignItems:"center", gap:4,
+          }}>✦ AI</button>
           <button onClick={() => setShowAdd(true)} style={{
             background:"#007AFF", border:"none", color:"#fff",
             width:32, height:32, borderRadius:"50%",
@@ -704,6 +712,22 @@ function MainApp({ session }) {
           )}
         </div>
       </div>
+
+      {/* AI Parse Modal */}
+      {showAIParse && (
+        <AIParseModal
+          onAdd={async (events) => {
+            for (const ev of events) {
+              const payload = { ...ev, user_id: user.id };
+              const { data } = await supabase.from("events").insert(payload).select().single();
+              if (data) setEvents(prev => [data, ...prev]);
+            }
+            setShowAIParse(false);
+          }}
+          onClose={() => setShowAIParse(false)}
+          userId={user.id}
+        />
+      )}
 
       {/* Add Modal */}
       {showAdd && (
