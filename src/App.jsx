@@ -445,6 +445,203 @@ function DetailPanel({ ev, onUpdate, onDelete, onClose }) {
   );
 }
 
+// ── AI PARSE MODAL ──────────────────────────────────────────
+function AIParseModal({ onAdd, onClose, userId }) {
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [parsed, setParsed] = useState(null);
+  const [err, setErr] = useState("");
+  const todayDate = new Date().toISOString().split("T")[0];
+
+  const EXAMPLES = [
+    "พรุ่งนี้ประชุม sprint 10.30-12.00",
+    "gym วันศุกร์ 18:00-19:30",
+    "นัดหมอ 15 มิ.ย. บ่าย 2",
+    "นอน 4 ทุ่ม ตื่น 6 โมงเช้าพรุ่งนี้",
+    "มื้อเช้า 8 โมง + gym 6 โมงเย็น",
+  ];
+
+  const catColors = { sleep:"#5E9BFF", meal:"#FF9F40", exercise:"#34C759", work:"#FF375F" };
+  const catLabels = { sleep:"นอนหลับ", meal:"อาหาร", exercise:"ออกกำลังกาย", work:"งาน/นัด" };
+
+  async function parse() {
+    if (!input.trim()) return;
+    setLoading(true); setErr(""); setParsed(null);
+    const sys = `You are a Thai/English calendar event parser. Extract ALL events from the text and return ONLY a JSON array. Today is ${todayDate}. Rules: category must be sleep/meal/exercise/work. date format YYYY-MM-DD (วันนี้=today, พรุ่งนี้=tomorrow). planned_start_time and planned_end_time in HH:MM 24hr format. status always "scheduled". Estimate end time if not given (meeting=1h, meal=30m, exercise=1h, sleep=8h). Return ONLY valid JSON array no markdown: [{"id":"1","category":"work","title":"...","date":"${todayDate}","planned_start_time":"10:00","planned_end_time":"11:00","status":"scheduled","notes":""}]`;
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${AI_KEY}`,
+        {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({
+            contents:[{parts:[{text:`${sys}\n\nText: ${input}`}]}],
+            generationConfig:{maxOutputTokens:800, temperature:0.1},
+          }),
+        }
+      );
+      const data = await res.json();
+      if (data.error) { setErr(data.error.message); setLoading(false); return; }
+      const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
+      const clean = raw.replace(/```json|```/g,"").trim();
+      const items = JSON.parse(clean);
+      if (!Array.isArray(items) || items.length === 0) {
+        setErr("ไม่พบกิจกรรม ลองพิมพ์ใหม่ครับ");
+      } else {
+        setParsed(items.map((ev,i) => ({...ev, id: crypto.randomUUID(), user_id: userId})));
+      }
+    } catch(e) { setErr("Error: " + e.message); }
+    setLoading(false);
+  }
+
+  return (
+    <div style={{
+      background:"rgba(18,18,20,0.98)",
+      border:"1px solid rgba(255,255,255,0.1)",
+      borderRadius:20,
+      margin:"0 0 16px 0",
+      overflow:"hidden",
+    }}>
+      {/* Header */}
+      <div style={{
+        padding:"16px 20px 14px",
+        borderBottom:"1px solid rgba(255,255,255,0.08)",
+        display:"flex", justifyContent:"space-between", alignItems:"center",
+      }}>
+        <div>
+          <div style={{fontSize:11,color:"#a78bfa",fontWeight:700,letterSpacing:1,textTransform:"uppercase"}}>✦ AI Parse</div>
+          <div style={{fontSize:16,fontWeight:600,color:"#f2f2f7",marginTop:2}}>พิมพ์แบบไหนก็ได้</div>
+        </div>
+        <button onClick={onClose} style={{
+          background:"rgba(255,255,255,0.1)",border:"none",
+          width:30,height:30,borderRadius:"50%",
+          cursor:"pointer",color:"#aeaeb2",fontSize:15,
+        }}>✕</button>
+      </div>
+
+      <div style={{padding:"16px 20px 20px",display:"flex",flexDirection:"column",gap:12}}>
+        {/* Example chips */}
+        <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+          {EXAMPLES.map(ex => (
+            <button key={ex} onClick={() => setInput(ex)} style={{
+              background:"rgba(255,255,255,0.06)",
+              border:"1px solid rgba(255,255,255,0.12)",
+              color:"#8e8e93",fontSize:11,padding:"4px 10px",
+              borderRadius:20,cursor:"pointer",fontFamily:"inherit",
+            }}>{ex}</button>
+          ))}
+        </div>
+
+        {/* Textarea */}
+        <textarea
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => { if(e.key==="Enter" && (e.metaKey||e.ctrlKey)) parse(); }}
+          placeholder={"พิมพ์กิจกรรมวันนี้หรือวันข้างหน้า...\n\nเช่น: พรุ่งนี้ประชุม 10 โมง, gym 6 โมงเย็น, นัดหมอ 15 มิ.ย. บ่ายสอง"}
+          rows={3}
+          style={{
+            width:"100%",resize:"none",
+            background:"rgba(255,255,255,0.06)",
+            border:"1px solid rgba(255,255,255,0.1)",
+            borderRadius:12,padding:"11px 14px",
+            fontSize:14,color:"#f2f2f7",
+            fontFamily:"-apple-system, 'Noto Sans Thai', sans-serif",
+            outline:"none",lineHeight:1.7,boxSizing:"border-box",
+          }}
+          onFocus={e => e.target.style.borderColor="rgba(167,139,250,0.6)"}
+          onBlur={e => e.target.style.borderColor="rgba(255,255,255,0.1)"}
+        />
+
+        {/* Parse button */}
+        <button
+          onClick={parse}
+          disabled={loading || !input.trim()}
+          style={{
+            width:"100%",padding:"12px",
+            background:loading ? "rgba(167,139,250,0.15)" : "linear-gradient(135deg,#7c3aed,#a78bfa)",
+            border:"none",borderRadius:12,
+            color:loading ? "#a78bfa" : "#fff",
+            fontSize:14,fontWeight:600,
+            cursor:loading||!input.trim() ? "not-allowed":"pointer",
+            fontFamily:"inherit",opacity:!input.trim()?0.4:1,
+          }}
+        >{loading ? "✦ กำลังวิเคราะห์..." : "✦ วิเคราะห์กิจกรรม"}</button>
+
+        {/* Error */}
+        {err && (
+          <div style={{
+            background:"rgba(255,59,48,0.1)",
+            border:"1px solid rgba(255,59,48,0.3)",
+            borderRadius:10,padding:"10px 14px",
+            fontSize:13,color:"#FF6B6B",
+          }}>{err}</div>
+        )}
+
+        {/* Preview */}
+        {parsed && parsed.length > 0 && (
+          <div>
+            <div style={{fontSize:11,color:"#34C759",fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>
+              ✓ พบ {parsed.length} กิจกรรม
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:12}}>
+              {parsed.map(ev => (
+                <div key={ev.id} style={{
+                  background:"rgba(255,255,255,0.04)",
+                  border:`1px solid ${catColors[ev.category]||"#555"}33`,
+                  borderLeft:`3px solid ${catColors[ev.category]||"#555"}`,
+                  borderRadius:10,padding:"10px 14px",
+                  display:"flex",alignItems:"center",gap:10,
+                }}>
+                  <div style={{flex:1}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
+                      <span style={{fontSize:13,fontWeight:500,color:"#f2f2f7"}}>{ev.title}</span>
+                      <span style={{
+                        fontSize:9,padding:"2px 7px",borderRadius:10,
+                        background:`${catColors[ev.category]}22`,
+                        color:catColors[ev.category]||"#888",fontWeight:600,
+                      }}>{catLabels[ev.category]||ev.category}</span>
+                    </div>
+                    <div style={{fontSize:11,color:"#48484a"}}>
+                      {ev.date} · {ev.planned_start_time}–{ev.planned_end_time}
+                      {ev.notes && <span style={{marginLeft:6,color:"#3a3a3c"}}>· {ev.notes}</span>}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setParsed(prev => prev.filter(e => e.id !== ev.id))}
+                    style={{background:"transparent",border:"none",color:"#FF3B30",fontSize:18,cursor:"pointer",padding:"2px 6px"}}
+                  >×</button>
+                </div>
+              ))}
+            </div>
+            <div style={{display:"flex",gap:8}}>
+              <button
+                onClick={() => onAdd(parsed)}
+                style={{
+                  flex:1,padding:"12px",
+                  background:"linear-gradient(135deg,#34C759,#30a14e)",
+                  border:"none",borderRadius:12,
+                  color:"#fff",fontSize:14,fontWeight:600,
+                  cursor:"pointer",fontFamily:"inherit",
+                }}
+              >✓ บันทึก {parsed.length} กิจกรรม</button>
+              <button
+                onClick={() => {setParsed(null); setInput("");}}
+                style={{
+                  padding:"12px 16px",
+                  background:"rgba(255,255,255,0.08)",
+                  border:"1px solid rgba(255,255,255,0.1)",
+                  borderRadius:12,color:"#aeaeb2",
+                  fontSize:14,cursor:"pointer",fontFamily:"inherit",
+                }}
+              >ล้าง</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── MAIN APP (authenticated) ─────────────────────────────────
 function MainApp({ session }) {
   const [events, setEvents]     = useState([]);
@@ -452,6 +649,7 @@ function MainApp({ session }) {
   const [selected, setSelected] = useState(null);
   const [showAdd, setShowAdd]   = useState(false);
   const [showAIParse, setShowAIParse] = useState(false);
+  const [toast, setToast]       = useState(null);
   const [filter, setFilter]     = useState("all");
   const [search, setSearch]     = useState("");
   const [profile, setProfile]   = useState(null);
@@ -504,6 +702,22 @@ function MainApp({ session }) {
   }
 
   async function signOut() { await supabase.auth.signOut(); }
+
+  function showToast(msg, color = "#34C759") {
+    setToast({ msg, color });
+    setTimeout(() => setToast(null), 3500);
+  }
+
+  async function addEventsFromAI(evList) {
+    let count = 0;
+    for (const ev of evList) {
+      const payload = { ...ev, user_id: user.id };
+      const { data } = await supabase.from("events").insert(payload).select().single();
+      if (data) { setEvents(prev => [data, ...prev]); count++; }
+    }
+    setShowAIParse(false);
+    showToast(`✓ เพิ่ม ${count} กิจกรรมแล้ว`);
+  }
 
   // ── Filtered list ──
   const today = todayStr();
@@ -634,6 +848,15 @@ function MainApp({ session }) {
           ))}
         </div>
 
+        {/* ── AI Parse Panel (inline) ── */}
+        {showAIParse && (
+          <AIParseModal
+            onAdd={addEventsFromAI}
+            onClose={() => setShowAIParse(false)}
+            userId={user.id}
+          />
+        )}
+
         {/* ── Split Layout ── */}
         <div style={{ display:"grid", gridTemplateColumns: selected ? "1fr 360px" : "1fr", gap:14, alignItems:"start" }}>
 
@@ -713,20 +936,19 @@ function MainApp({ session }) {
         </div>
       </div>
 
-      {/* AI Parse Modal */}
-      {showAIParse && (
-        <AIParseModal
-          onAdd={async (events) => {
-            for (const ev of events) {
-              const payload = { ...ev, user_id: user.id };
-              const { data } = await supabase.from("events").insert(payload).select().single();
-              if (data) setEvents(prev => [data, ...prev]);
-            }
-            setShowAIParse(false);
-          }}
-          onClose={() => setShowAIParse(false)}
-          userId={user.id}
-        />
+      {/* AI Parse Modal - inline, no fixed overlay */}
+
+      {/* Toast Notification */}
+      {toast && (
+        <div style={{
+          position:"fixed", bottom:30, left:"50%", transform:"translateX(-50%)",
+          background:toast.color, color:"#fff",
+          padding:"12px 24px", borderRadius:20,
+          fontSize:14, fontWeight:600,
+          boxShadow:"0 4px 20px rgba(0,0,0,0.4)",
+          zIndex:999, whiteSpace:"nowrap",
+          animation:"fadeIn 0.2s ease",
+        }}>{toast.msg}</div>
       )}
 
       {/* Add Modal */}
