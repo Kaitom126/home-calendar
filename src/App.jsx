@@ -790,6 +790,7 @@ function MainApp({ session }) {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [toast, setToast]               = useState(null);
   const [pushEnabled, setPushEnabled]   = useState(false);
+  const [showPushBanner, setShowPushBanner] = useState(false);
   const routineGenRef                   = useRef(false);
   const notifScheduledRef               = useRef(new Set());
   const user = session.user;
@@ -815,14 +816,24 @@ function MainApp({ session }) {
   useEffect(()=>{
     registerSW().then(async(reg)=>{
       if(!reg) return;
-      if(Notification.permission==="granted") { setPushEnabled(true); }
-      else if(Notification.permission==="default") {
-        const granted = await requestPushPermission();
-        setPushEnabled(granted);
-        if(granted) showToast("เปิดการแจ้งเตือนแล้ว");
+      if(Notification.permission==="granted") {
+        setPushEnabled(true);
+      } else if(Notification.permission==="denied") {
+        setPushEnabled(false);
       }
+      // ถ้า permission เป็น default จะแสดง banner แทนการถามทันที
     });
   },[]);
+
+  // แสดง banner ขอแจ้งเตือนเมื่อ onboarding เสร็จหรือหลัง reset
+  useEffect(()=>{
+    if(!userProfile?.onboarded) return;
+    if(Notification.permission==="default") {
+      // รอ 2 วินาทีหลัง onboard เสร็จค่อยแสดง
+      const t = setTimeout(()=>setShowPushBanner(true), 2000);
+      return ()=>clearTimeout(t);
+    }
+  },[userProfile?.onboarded]);
 
   const fetchEvents = useCallback(async()=>{
     setLoading(true);
@@ -1024,7 +1035,31 @@ function MainApp({ session }) {
             <div style={{fontSize:14,fontWeight:600,color:"#f0f0f0"}}>{authProfile?.display_name||"ผู้ใช้"}</div>
             <div style={{fontSize:12,color:"#555",marginBottom:6}}>{user.email}</div>
             {userProfile&&<div style={{fontSize:12,color:"#444",borderTop:"1px solid rgba(255,255,255,0.06)",paddingTop:8,marginBottom:10}}>{userProfile.age}ปี · {userProfile.weight_kg}กก. · {GOAL_LABELS[userProfile.goal]||"-"}</div>}
-            {!pushEnabled&&<button onClick={async()=>{const ok=await requestPushPermission();setPushEnabled(ok);if(ok)showToast("เปิดการแจ้งเตือนแล้ว");}} style={{width:"100%",padding:"9px",background:"rgba(0,122,255,0.12)",border:"1px solid rgba(0,122,255,0.2)",borderRadius:10,color:"#007AFF",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"inherit",marginBottom:8,WebkitTapHighlightColor:"transparent"}}>เปิดการแจ้งเตือน</button>}
+            {/* Push notification toggle row */}
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderTop:"1px solid rgba(255,255,255,0.06)",marginTop:4}}>
+              <div>
+                <div style={{fontSize:13,color:"#f0f0f0",fontWeight:500}}>การแจ้งเตือน</div>
+                <div style={{fontSize:11,color:Notification.permission==="denied"?"#FF3B30":"#555",marginTop:1}}>
+                  {Notification.permission==="granted"?"เปิดอยู่":Notification.permission==="denied"?"ถูกบล็อก กรุณาเปิดใน Settings":"ยังไม่ได้เปิด"}
+                </div>
+              </div>
+              {Notification.permission!=="denied" && (
+                <button onClick={async()=>{
+                  if(pushEnabled) {
+                    // ปิด — แจ้งให้รู้ว่าต้องไปปิดใน browser settings
+                    showToast("ปิดได้ใน Settings → Notifications ของ browser","#FF9500");
+                  } else {
+                    const ok = await requestPushPermission();
+                    setPushEnabled(ok);
+                    setShowPushBanner(false);
+                    if(ok) showToast("เปิดการแจ้งเตือนแล้ว");
+                    else showToast("ไม่ได้รับอนุญาต","#FF3B30");
+                  }
+                }} style={{background:pushEnabled?"#34C759":"rgba(255,255,255,0.1)",border:"none",borderRadius:14,width:48,height:28,cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0,WebkitTapHighlightColor:"transparent"}}>
+                  <div style={{position:"absolute",top:3,left:pushEnabled?23:3,width:22,height:22,borderRadius:"50%",background:"#fff",transition:"left 0.2s",boxShadow:"0 1px 4px rgba(0,0,0,0.3)"}}/>
+                </button>
+              )}
+            </div>
             <div style={{display:"flex",flexDirection:"column",gap:6}}>
               <Btn onClick={()=>{setShowResetConfirm(true);setShowProfileMenu(false);}} ghost danger full small>รีเซ็ตบัญชี</Btn>
               <Btn onClick={()=>supabase.auth.signOut()} ghost color="#666" full small>ออกจากระบบ</Btn>
@@ -1231,6 +1266,40 @@ function MainApp({ session }) {
           onClose={()=>setShowCalPicker(false)}
           today={today}
         />
+      )}
+
+      {/* Push notification banner */}
+      {showPushBanner && Notification.permission==="default" && (
+        <div style={{
+          position:"fixed",bottom:"calc(20px + env(safe-area-inset-bottom))",
+          left:12,right:12,zIndex:998,
+          animation:"slideUp 0.3s ease",
+          maxWidth:440,margin:"0 auto",
+        }}>
+          <div style={{background:"rgba(22,22,24,0.98)",border:"1px solid rgba(0,122,255,0.3)",borderRadius:16,padding:"14px 16px",boxShadow:"0 8px 32px rgba(0,0,0,0.5)"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
+              <div style={{flex:1}}>
+                <div style={{fontSize:15,fontWeight:600,color:"#f0f0f0",marginBottom:4}}>เปิดการแจ้งเตือน</div>
+                <div style={{fontSize:13,color:"#888",lineHeight:1.5}}>รับแจ้งเตือนก่อนกิจกรรมสำคัญ สรุปกิจกรรมทุกเช้า และรายงานสัปดาห์</div>
+              </div>
+              <button onClick={()=>setShowPushBanner(false)} style={{background:"rgba(255,255,255,0.08)",border:"none",width:26,height:26,borderRadius:"50%",cursor:"pointer",color:"#555",fontSize:13,flexShrink:0,WebkitTapHighlightColor:"transparent"}}>✕</button>
+            </div>
+            <div style={{display:"flex",gap:8,marginTop:12}}>
+              <button onClick={async()=>{
+                const ok = await requestPushPermission();
+                setPushEnabled(ok);
+                setShowPushBanner(false);
+                if(ok) showToast("เปิดการแจ้งเตือนแล้ว");
+                else showToast("ไม่ได้รับอนุญาต","#FF3B30");
+              }} style={{flex:1,padding:"10px",background:"#007AFF",border:"none",borderRadius:10,color:"#fff",fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:"inherit",WebkitTapHighlightColor:"transparent"}}>
+                เปิด
+              </button>
+              <button onClick={()=>setShowPushBanner(false)} style={{flex:1,padding:"10px",background:"rgba(255,255,255,0.06)",border:"none",borderRadius:10,color:"#888",fontSize:14,cursor:"pointer",fontFamily:"inherit",WebkitTapHighlightColor:"transparent"}}>
+                ไม่ตอนนี้
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {toast&&(
