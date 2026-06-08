@@ -950,6 +950,17 @@ ${ev.notes}`:""}`,
   async function generateRoutine(date, routineOverride) {
     const r = routineOverride || userProfile?.routine;
     if(!r) return;
+
+    // เช็ค DB ก่อนว่ามี routine events วันนี้แล้วไหม ป้องกันซ้ำ
+    const { data: existing } = await supabase.from("events")
+      .select("id,title")
+      .eq("user_id", user.id)
+      .eq("date", date)
+      .in("title", ["นอนหลับ","ทำงาน","ออกกำลังกาย","มื้อเช้า","มื้อกลางวัน","มื้อเย็น"]);
+    if(existing && existing.length > 0) {
+      return; // มีแล้ว ไม่สร้างซ้ำ
+    }
+
     const toAdd = [];
     if(r.sleep_start) toAdd.push({category:"sleep",title:"นอนหลับ",date,planned_start_time:r.sleep_start,planned_end_time:r.sleep_end||"07:00",status:"scheduled",notes:"",is_important:false});
     if(r.work_start)  toAdd.push({category:"work", title:"ทำงาน",  date,planned_start_time:r.work_start, planned_end_time:r.work_end||"18:00", status:"scheduled",notes:"",is_important:false});
@@ -957,6 +968,7 @@ ${ev.notes}`:""}`,
     if(r.meal_breakfast) toAdd.push({category:"meal",title:"มื้อเช้า",   date,planned_start_time:r.meal_breakfast,planned_end_time:addMinutes(r.meal_breakfast,30),status:"scheduled",notes:"",is_important:false});
     if(r.meal_lunch)     toAdd.push({category:"meal",title:"มื้อกลางวัน",date,planned_start_time:r.meal_lunch,    planned_end_time:addMinutes(r.meal_lunch,30),    status:"scheduled",notes:"",is_important:false});
     if(r.meal_dinner)    toAdd.push({category:"meal",title:"มื้อเย็น",   date,planned_start_time:r.meal_dinner,   planned_end_time:addMinutes(r.meal_dinner,30),   status:"scheduled",notes:"",is_important:false});
+
     let count=0;
     for(const ev of toAdd) {
       const {data} = await supabase.from("events").insert({...ev,user_id:user.id,id:uid()}).select().single();
@@ -1030,9 +1042,9 @@ ${ev.notes}`:""}`,
         setUserProfile(up);
         setShowOnboarding(false);
         showToast("ยินดีต้อนรับ กำลังสร้างตาราง...");
-        // Generate immediately after onboarding
         if(up?.routine) {
           const today = todayStr();
+          lastGenDateRef.current = today; // ป้องกัน useEffect สร้างซ้ำ
           await generateRoutine(today, up.routine);
         }
       }}/>}
