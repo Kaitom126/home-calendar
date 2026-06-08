@@ -668,8 +668,8 @@ function EventModal({ initial, onSave, onClose }) {
             {/* Important toggle */}
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",background:"rgba(255,149,0,0.08)",borderRadius:12,border:"1px solid rgba(255,149,0,0.15)"}}>
               <div>
-                <div style={{fontSize:15,color:"#f0f0f0",fontWeight:500}}>กิจกรรมสำคัญ</div>
-                <div style={{fontSize:12,color:"#555",marginTop:2}}>แจ้งเตือนก่อน 30 นาที</div>
+                <div style={{fontSize:15,color:"#f0f0f0",fontWeight:500}}>สำคัญ (แจ้งเตือนก่อน 30 นาที)</div>
+                <div style={{fontSize:12,color:"#555",marginTop:2}}>ปกติแจ้งก่อน 10 นาที · งาน/gym แจ้งก่อน 30 นาทีอยู่แล้ว</div>
               </div>
               <button onClick={()=>set("is_important",!form.is_important)} style={{background:form.is_important?"#FF9500":"rgba(255,255,255,0.1)",border:"none",borderRadius:14,width:52,height:30,cursor:"pointer",position:"relative",transition:"background 0.2s",WebkitTapHighlightColor:"transparent"}}>
                 <div style={{position:"absolute",top:3,left:form.is_important?25:3,width:24,height:24,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
@@ -871,51 +871,77 @@ function MainApp({ session }) {
     const today = todayStr();
     const now = new Date();
 
-    events.filter(e=>e.date===today&&e.is_important&&e.status==="scheduled").forEach(ev=>{
-      if(notifScheduledRef.current.has(ev.id)) return;
+    // กำหนดเวลาแจ้งเตือนล่วงหน้าตามประเภท
+    // is_important = true → 30 นาที
+    // work(ประชุม) หรือ exercise → 30 นาที
+    // อื่นๆ → 10 นาที
+    function getLeadMins(ev) {
+      if(ev.is_important) return 30;
+      if(ev.category==="work"||ev.category==="exercise") return 30;
+      return 10;
+    }
+
+    function getCatLabel(cat) {
+      return {sleep:"นอนหลับ",meal:"อาหาร",exercise:"ออกกำลังกาย",work:"งาน/นัดหมาย"}[cat]||cat;
+    }
+
+    // แจ้งเตือนทุก event วันนี้ที่ยังไม่ได้ schedule
+    events.filter(e=>e.date===today&&e.status==="scheduled"&&e.planned_start_time).forEach(ev=>{
+      const key = `${ev.id}-remind`;
+      if(notifScheduledRef.current.has(key)) return;
       const [h,m] = ev.planned_start_time.split(":").map(Number);
-      const evTime = new Date(); evTime.setHours(h,m,0,0);
-      const notifTime = new Date(evTime.getTime()-30*60*1000);
-      const delay = notifTime.getTime()-now.getTime();
-      if(delay>0&&delay<24*60*60*1000) {
-        notifScheduledRef.current.add(ev.id);
+      const evStart = new Date(); evStart.setHours(h,m,0,0);
+      const leadMins = getLeadMins(ev);
+      const notifAt = new Date(evStart.getTime() - leadMins*60*1000);
+      const delay = notifAt.getTime() - now.getTime();
+      if(delay>0 && delay<24*60*60*1000) {
+        notifScheduledRef.current.add(key);
+        const leadLabel = leadMins===30?"30 นาที":"10 นาที";
         scheduleLocalNotification(
           ev.title,
-          `เริ่ม ${ev.planned_start_time} น. อีก 30 นาที${ev.notes?`\n${ev.notes}`:""}`,
-          delay, `remind-${ev.id}`
+          `${getCatLabel(ev.category)} · เริ่ม ${ev.planned_start_time} น. อีก ${leadLabel}${ev.notes?`
+${ev.notes}`:""}`,
+          delay, key
         );
       }
     });
 
-    // Morning summary at 7:00
-    const morning = new Date(); morning.setHours(7,0,0,0);
-    const morningDelay = morning.getTime()-now.getTime();
-    if(morningDelay>0&&morningDelay<24*60*60*1000) {
-      const todayEvs = events.filter(e=>e.date===today);
-      if(todayEvs.length>0) {
-        const important = todayEvs.filter(e=>e.is_important);
-        scheduleLocalNotification(
-          `กิจกรรมวันนี้ ${todayEvs.length} รายการ`,
-          important.length>0 ? `สำคัญ: ${important.map(e=>e.title).join(", ")}` : todayEvs.slice(0,3).map(e=>`${e.planned_start_time} ${e.title}`).join("\n"),
-          morningDelay, "morning-summary"
-        );
+    // Morning summary 07:00
+    if(!notifScheduledRef.current.has("morning-"+today)) {
+      const morning = new Date(); morning.setHours(7,0,0,0);
+      const morningDelay = morning.getTime()-now.getTime();
+      if(morningDelay>0&&morningDelay<24*60*60*1000) {
+        const todayEvs = events.filter(e=>e.date===today).sort((a,b)=>(a.planned_start_time||"").localeCompare(b.planned_start_time||""));
+        if(todayEvs.length>0) {
+          notifScheduledRef.current.add("morning-"+today);
+          const lines = todayEvs.slice(0,4).map(e=>`${e.planned_start_time} ${e.title}`).join("
+");
+          const more = todayEvs.length>4?`
++${todayEvs.length-4} รายการ`:"";
+          scheduleLocalNotification(
+            `วันนี้มี ${todayEvs.length} กิจกรรม`,
+            lines+more,
+            morningDelay, "morning-"+today
+          );
+        }
       }
     }
 
-    // Weekly report on Sunday 20:00
-    const dayOfWeek = new Date().getDay();
-    if(dayOfWeek===0) {
+    // Weekly report Sunday 20:00
+    if(new Date().getDay()===0&&!notifScheduledRef.current.has("weekly-"+today)) {
       const sunday = new Date(); sunday.setHours(20,0,0,0);
       const sundayDelay = sunday.getTime()-now.getTime();
       if(sundayDelay>0) {
+        notifScheduledRef.current.add("weekly-"+today);
         const weekAgo = addDays(today,-7);
         const wEvs = events.filter(e=>e.date>=weekAgo&&e.date<=today);
         const done = wEvs.filter(e=>e.status==="completed").length;
         const pct = wEvs.length>0?Math.round((done/wEvs.length)*100):0;
         scheduleLocalNotification(
-          `รายงานสัปดาห์ ${pct}% completion`,
-          `เสร็จ ${done}/${wEvs.length} รายการ เปิดแอปเพื่อดูการวิเคราะห์`,
-          sundayDelay, "weekly-report"
+          `รายงานสัปดาห์ · ${pct}%`,
+          `เสร็จ ${done} จาก ${wEvs.length} รายการ
+เปิดแอปเพื่อดูการวิเคราะห์`,
+          sundayDelay, "weekly-"+today
         );
       }
     }
