@@ -841,12 +841,18 @@ function MainApp({ session }) {
   useEffect(()=>{ fetchEvents(); fetchProfile(); },[fetchEvents,fetchProfile]);
 
   // ── Auto-generate routine ──
+  // Runs when: userProfile loaded, events loaded, or after onboarding
+  const lastGenDateRef = useRef("");
   useEffect(()=>{
-    if(!userProfile?.routine||loading||routineGenRef.current) return;
+    if(!userProfile?.routine||!userProfile.onboarded||loading) return;
     const today = todayStr();
+    if(lastGenDateRef.current === today) return; // already tried today
     const has = events.some(e=>e.date===today);
-    if(!has) { routineGenRef.current=true; generateRoutine(today); }
-  },[userProfile,loading,events]);
+    if(!has) {
+      lastGenDateRef.current = today;
+      generateRoutine(today, userProfile.routine);
+    }
+  },[userProfile?.onboarded, userProfile?.routine, loading, events]);
 
   // ── Schedule notifications ──
   useEffect(()=>{
@@ -904,8 +910,8 @@ function MainApp({ session }) {
     }
   },[pushEnabled,events]);
 
-  async function generateRoutine(date) {
-    const r = userProfile?.routine;
+  async function generateRoutine(date, routineOverride) {
+    const r = routineOverride || userProfile?.routine;
     if(!r) return;
     const toAdd = [];
     if(r.sleep_start) toAdd.push({category:"sleep",title:"นอนหลับ",date,planned_start_time:r.sleep_start,planned_end_time:r.sleep_end||"07:00",status:"scheduled",notes:"",is_important:false});
@@ -983,7 +989,16 @@ function MainApp({ session }) {
         input,textarea,button{-webkit-appearance:none}
       `}</style>
 
-      {showOnboarding && <Onboarding userId={user.id} onComplete={up=>{setUserProfile(up);setShowOnboarding(false);showToast("ยินดีต้อนรับ");}}/>}
+      {showOnboarding && <Onboarding userId={user.id} onComplete={async(up)=>{
+        setUserProfile(up);
+        setShowOnboarding(false);
+        showToast("ยินดีต้อนรับ กำลังสร้างตาราง...");
+        // Generate immediately after onboarding
+        if(up?.routine) {
+          const today = todayStr();
+          await generateRoutine(today, up.routine);
+        }
+      }}/>}
 
       {/* Navbar */}
       <div style={{background:"rgba(8,8,8,0.97)",backdropFilter:"blur(20px)",borderBottom:"1px solid rgba(255,255,255,0.06)",padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,zIndex:50,paddingTop:"calc(12px + env(safe-area-inset-top))"}}>
@@ -1151,8 +1166,21 @@ function MainApp({ session }) {
                           <span style={{fontSize:15,fontWeight:500,color:isDone?"#555":"#f0f0f0",textDecoration:isDone?"line-through":"none"}}>{ev.title}</span>
                           {ev.is_important&&<span style={{fontSize:10,color:"#FF9500",fontWeight:700,flexShrink:0}}>!</span>}
                         </div>
-                        <div style={{fontSize:12,color:"#555",marginTop:3,paddingLeft:14}}>
-                          {ev.planned_start_time}{ev.planned_end_time?` – ${ev.planned_end_time}`:""}
+                        <div style={{fontSize:12,marginTop:3,paddingLeft:14,display:"flex",alignItems:"center",gap:6}}>
+                          <span style={{color:"#555"}}>{ev.planned_start_time}{ev.planned_end_time?` – ${ev.planned_end_time}`:""}</span>
+                          {(()=>{
+                            if(ev.status==="completed"||ev.status==="skipped") return null;
+                            if(ev.date !== todayStr()) return null;
+                            const now = new Date();
+                            const [h,m] = (ev.planned_end_time||ev.planned_start_time||"00:00").split(":").map(Number);
+                            const evEnd = new Date(); evEnd.setHours(h,m,0,0);
+                            if(now > evEnd) return <span style={{fontSize:10,color:"#FF3B30",fontWeight:600}}>เลยเวลาแล้ว</span>;
+                            const [sh,sm] = (ev.planned_start_time||"00:00").split(":").map(Number);
+                            const evStart = new Date(); evStart.setHours(sh,sm,0,0);
+                            const diffMin = Math.round((evStart-now)/60000);
+                            if(diffMin>0&&diffMin<=30) return <span style={{fontSize:10,color:"#FF9500",fontWeight:600}}>อีก {diffMin} นาที</span>;
+                            return null;
+                          })()}
                         </div>
                       </div>
 
@@ -1174,7 +1202,19 @@ function MainApp({ session }) {
 
       {(showAdd||editingEvent)&&<EventModal initial={editingEvent} onSave={saveEvent} onClose={()=>{setShowAdd(false);setEditingEvent(null);}}/>}
       {showChat&&<AIHealthChat events={events} userProfile={userProfile} onClose={()=>setShowChat(false)}/>}
-      {showRoutine&&<RoutineEditor userProfile={userProfile} userId={user.id} onClose={()=>setShowRoutine(false)} onSave={r=>{setUserProfile(p=>({...p,routine:r}));setShowRoutine(false);showToast("บันทึกแล้ว");}}/>}
+      {showRoutine&&<RoutineEditor userProfile={userProfile} userId={user.id} onClose={()=>setShowRoutine(false)} onSave={async(r)=>{
+        setUserProfile(p=>({...p,routine:r}));
+        setShowRoutine(false);
+        showToast("บันทึกตารางแล้ว");
+        // ลบ routine events เดิมของวันนี้แล้วสร้างใหม่
+        const tod = todayStr();
+        const autoTitles = ["นอนหลับ","ทำงาน","ออกกำลังกาย","มื้อเช้า","มื้อกลางวัน","มื้อเย็น"];
+        const toDelete = events.filter(e=>e.date===tod&&autoTitles.includes(e.title)&&!e.is_important);
+        for(const ev of toDelete) await supabase.from("events").delete().eq("id",ev.id);
+        setEvents(prev=>prev.filter(e=>!(e.date===tod&&autoTitles.includes(e.title)&&!e.is_important)));
+        lastGenDateRef.current = "";
+        await generateRoutine(tod, r);
+      }}/>}
 
       {/* Inline Calendar Picker Modal */}
       {showCalPicker&&(
