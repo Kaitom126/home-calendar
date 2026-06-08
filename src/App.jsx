@@ -1172,13 +1172,20 @@ function MainApp({ session }) {
                             if(ev.status==="completed"||ev.status==="skipped") return null;
                             if(ev.date !== todayStr()) return null;
                             const now = new Date();
-                            const [h,m] = (ev.planned_end_time||ev.planned_start_time||"00:00").split(":").map(Number);
-                            const evEnd = new Date(); evEnd.setHours(h,m,0,0);
-                            if(now > evEnd) return <span style={{fontSize:10,color:"#FF3B30",fontWeight:600}}>เลยเวลาแล้ว</span>;
                             const [sh,sm] = (ev.planned_start_time||"00:00").split(":").map(Number);
+                            const [eh,em] = (ev.planned_end_time||ev.planned_start_time||"00:00").split(":").map(Number);
+                            // ข้ามวัน: เวลาสิ้นสุดน้อยกว่าเวลาเริ่ม (เช่น นอน 23:00 ตื่น 07:00)
+                            const isOvernight = eh < sh || (eh===sh && em < sm);
+                            if(isOvernight) {
+                              // ถือว่ายังไม่เลยเวลา ถ้าเวลาปัจจุบันหลังเริ่ม หรือก่อนสิ้นสุดพรุ่งนี้
+                              return null;
+                            }
+                            const evEnd = new Date(); evEnd.setHours(eh,em,0,0);
                             const evStart = new Date(); evStart.setHours(sh,sm,0,0);
+                            if(now > evEnd) return <span style={{fontSize:10,color:"#FF3B30",fontWeight:600}}>เลยเวลาแล้ว</span>;
                             const diffMin = Math.round((evStart-now)/60000);
                             if(diffMin>0&&diffMin<=30) return <span style={{fontSize:10,color:"#FF9500",fontWeight:600}}>อีก {diffMin} นาที</span>;
+                            if(now >= evStart && now <= evEnd) return <span style={{fontSize:10,color:"#34C759",fontWeight:600}}>กำลังดำเนินอยู่</span>;
                             return null;
                           })()}
                         </div>
