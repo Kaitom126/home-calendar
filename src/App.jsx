@@ -22,7 +22,11 @@ const GOAL_LABELS = { health:"สุขภาพดี", lose:"ลดน้ำ�
 const DAY_TH = ["อา","จ","อ","พ","พฤ","ศ","ส"];
 const MONTH_TH = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
 
-function todayStr() { return new Date().toISOString().split("T")[0]; }
+function todayStr() {
+  const d = new Date();
+  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,"0"), dd = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${dd}`;
+}
 function uid() { return crypto.randomUUID(); }
 function parseDate(s) { return new Date(s + "T00:00:00"); }
 function fmtDateFull(s) {
@@ -37,7 +41,8 @@ function fmtDateShort(s) {
 }
 function addDays(s, n) {
   const d = parseDate(s); d.setDate(d.getDate() + n);
-  return d.toISOString().split("T")[0];
+  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,"0"), dd = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${dd}`;
 }
 function addMinutes(t, m) {
   const [h,mm] = t.split(":").map(Number), tot=h*60+mm+m;
@@ -686,6 +691,85 @@ function EventModal({ initial, onSave, onClose }) {
   );
 }
 
+// ── Inline Calendar Picker Modal ──────────────────────────
+function InlineCal({ value, onChange, onClose, today }) {
+  const selDate = value || today;
+  const initD = new Date(selDate + "T00:00:00");
+  const [vy, setVy] = useState(initD.getFullYear());
+  const [vm, setVm] = useState(initD.getMonth());
+
+  function localStr(y,m,d) {
+    return `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+  }
+
+  function getDays() {
+    const first = new Date(vy,vm,1).getDay();
+    const total = new Date(vy,vm+1,0).getDate();
+    const offset = first===0?6:first-1;
+    const cells = [];
+    for(let i=0;i<offset;i++) cells.push(null);
+    for(let i=1;i<=total;i++) cells.push(i);
+    return cells;
+  }
+
+  function prevMonth() {
+    if(vm===0) { setVy(y=>y-1); setVm(11); }
+    else setVm(m=>m-1);
+  }
+  function nextMonth() {
+    if(vm===11) { setVy(y=>y+1); setVm(0); }
+    else setVm(m=>m+1);
+  }
+
+  const days = getDays();
+
+  return (
+    <div style={{position:"fixed",inset:0,zIndex:800,display:"flex",alignItems:"flex-end",justifyContent:"center",background:"rgba(0,0,0,0.65)",backdropFilter:"blur(10px)"}}>
+      <div onClick={onClose} style={{position:"absolute",inset:0}}/>
+      <div style={{position:"relative",width:"100%",maxWidth:400,zIndex:1,animation:"slideUp 0.25s ease"}}>
+        <div style={{background:"rgba(20,20,22,0.99)",borderRadius:"22px 22px 0 0",border:"1px solid rgba(255,255,255,0.08)",borderBottom:"none",paddingBottom:"env(safe-area-inset-bottom)"}}>
+          {/* Header */}
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 20px 10px",borderBottom:"1px solid rgba(255,255,255,0.07)"}}>
+            <button onClick={onClose} style={{background:"none",border:"none",color:"#FF3B30",fontSize:16,cursor:"pointer",fontFamily:"inherit",fontWeight:500,WebkitTapHighlightColor:"transparent"}}>ยกเลิก</button>
+            <span style={{fontSize:16,fontWeight:700,color:"#f0f0f0"}}>{MONTH_TH[vm]} {vy+543}</span>
+            <button onClick={()=>onChange(today)} style={{background:"none",border:"none",color:"#007AFF",fontSize:15,cursor:"pointer",fontFamily:"inherit",fontWeight:600,WebkitTapHighlightColor:"transparent"}}>วันนี้</button>
+          </div>
+          {/* Month nav */}
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 20px 4px"}}>
+            <button onClick={prevMonth} style={{background:"rgba(255,255,255,0.08)",border:"none",color:"#f0f0f0",width:40,height:40,borderRadius:"50%",cursor:"pointer",fontSize:20,display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent"}}>‹</button>
+            <span style={{fontSize:14,color:"#888"}}>{vy}</span>
+            <button onClick={nextMonth} style={{background:"rgba(255,255,255,0.08)",border:"none",color:"#f0f0f0",width:40,height:40,borderRadius:"50%",cursor:"pointer",fontSize:20,display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent"}}>›</button>
+          </div>
+          {/* Day headers */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",padding:"0 16px 4px"}}>
+            {DAY_TH.map(d=>(<div key={d} style={{textAlign:"center",fontSize:12,color:"#555",padding:"4px 0",fontWeight:500}}>{d}</div>))}
+          </div>
+          {/* Days */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",padding:"0 16px 20px",gap:4}}>
+            {days.map((day,i)=>{
+              if(!day) return <div key={i}/>;
+              const ds = localStr(vy,vm,day);
+              const isSel = ds===selDate;
+              const isT   = ds===today;
+              return (
+                <button key={i} onClick={()=>onChange(ds)} style={{
+                  aspectRatio:"1",borderRadius:"50%",border:"none",
+                  background:isSel?"#007AFF":isT?"rgba(0,122,255,0.18)":"transparent",
+                  color:isSel?"#fff":isT?"#007AFF":"#f0f0f0",
+                  fontSize:17,fontWeight:isSel||isT?700:400,
+                  cursor:"pointer",WebkitTapHighlightColor:"transparent",
+                  display:"flex",alignItems:"center",justifyContent:"center",
+                  transition:"background 0.1s",
+                }}>{day}</button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── MAIN APP ───────────────────────────────────────────────
 function MainApp({ session }) {
   const [events, setEvents]             = useState([]);
@@ -699,6 +783,7 @@ function MainApp({ session }) {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [viewMode, setViewMode]         = useState("day");
   const [currentDate, setCurrentDate]   = useState(todayStr());
+  const [showCalPicker, setShowCalPicker] = useState(false);
   const [filter, setFilter]             = useState("all");
   const [authProfile, setAuthProfile]   = useState(null);
   const [userProfile, setUserProfile]   = useState(null);
@@ -960,21 +1045,32 @@ function MainApp({ session }) {
 
         {/* Date Navigation */}
         <div style={{marginBottom:12}}>
-          {/* View toggle */}
+          {/* View toggle + Day nav */}
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
             <div style={{display:"flex",background:"rgba(22,22,24,0.97)",borderRadius:10,padding:3,border:"1px solid rgba(255,255,255,0.06)"}}>
               {[{v:"day",l:"วัน"},{v:"week",l:"สัปดาห์"}].map(m=>(
                 <button key={m.v} onClick={()=>setViewMode(m.v)} style={{padding:"6px 14px",borderRadius:8,border:"none",background:viewMode===m.v?"#007AFF":"transparent",color:viewMode===m.v?"#fff":"#555",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"inherit",transition:"all 0.15s",WebkitTapHighlightColor:"transparent"}}>{m.l}</button>
               ))}
             </div>
-            {/* Day nav */}
             {viewMode==="day"&&(
-              <div style={{display:"flex",alignItems:"center",gap:0,background:"rgba(22,22,24,0.97)",borderRadius:12,border:"1px solid rgba(255,255,255,0.06)",overflow:"hidden"}}>
-                <button onClick={()=>setCurrentDate(addDays(currentDate,-1))} style={{background:"none",border:"none",color:"#888",width:44,height:40,cursor:"pointer",fontSize:20,display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent"}}>‹</button>
-                <button onClick={()=>setCurrentDate(today)} style={{background:"none",border:"none",color:currentDate===today?"#007AFF":"#f0f0f0",fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:"inherit",minWidth:80,textAlign:"center",padding:"0 4px",WebkitTapHighlightColor:"transparent"}}>
+              <div style={{display:"flex",alignItems:"center",gap:0,background:"rgba(22,22,24,0.97)",borderRadius:14,border:"1px solid rgba(255,255,255,0.08)",overflow:"hidden"}}>
+                {/* ← ย้อนหลัง */}
+                <button
+                  onClick={()=>{ const prev = addDays(currentDate,-1); setCurrentDate(prev); }}
+                  style={{background:"none",border:"none",color:"#f0f0f0",width:46,height:42,cursor:"pointer",fontSize:22,display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent",flexShrink:0}}
+                >‹</button>
+                {/* วันที่ กดเปิดปฏิทิน */}
+                <button
+                  onClick={()=>setShowCalPicker(true)}
+                  style={{background:"none",border:"none",borderLeft:"1px solid rgba(255,255,255,0.06)",borderRight:"1px solid rgba(255,255,255,0.06)",color:currentDate===today?"#007AFF":"#f0f0f0",fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:"inherit",minWidth:90,height:42,padding:"0 8px",WebkitTapHighlightColor:"transparent"}}
+                >
                   {currentDate===today?"วันนี้":fmtDateShort(currentDate)}
                 </button>
-                <button onClick={()=>setCurrentDate(addDays(currentDate,1))} style={{background:"none",border:"none",color:"#888",width:44,height:40,cursor:"pointer",fontSize:20,display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent"}}>›</button>
+                {/* → ไปหน้า */}
+                <button
+                  onClick={()=>{ const next = addDays(currentDate,1); setCurrentDate(next); }}
+                  style={{background:"none",border:"none",color:"#f0f0f0",width:46,height:42,cursor:"pointer",fontSize:22,display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent",flexShrink:0}}
+                >›</button>
               </div>
             )}
           </div>
@@ -1079,6 +1175,16 @@ function MainApp({ session }) {
       {(showAdd||editingEvent)&&<EventModal initial={editingEvent} onSave={saveEvent} onClose={()=>{setShowAdd(false);setEditingEvent(null);}}/>}
       {showChat&&<AIHealthChat events={events} userProfile={userProfile} onClose={()=>setShowChat(false)}/>}
       {showRoutine&&<RoutineEditor userProfile={userProfile} userId={user.id} onClose={()=>setShowRoutine(false)} onSave={r=>{setUserProfile(p=>({...p,routine:r}));setShowRoutine(false);showToast("บันทึกแล้ว");}}/>}
+
+      {/* Inline Calendar Picker Modal */}
+      {showCalPicker&&(
+        <InlineCal
+          value={currentDate}
+          onChange={v=>{ setCurrentDate(v); setShowCalPicker(false); }}
+          onClose={()=>setShowCalPicker(false)}
+          today={today}
+        />
+      )}
 
       {toast&&(
         <div style={{position:"fixed",bottom:"calc(24px + env(safe-area-inset-bottom))",left:"50%",transform:"translateX(-50%)",background:toast.color,color:"#fff",padding:"10px 20px",borderRadius:20,fontSize:14,fontWeight:600,zIndex:999,whiteSpace:"nowrap",animation:"fadeIn 0.2s ease",boxShadow:"0 4px 16px rgba(0,0,0,0.4)"}}>{toast.msg}</div>
